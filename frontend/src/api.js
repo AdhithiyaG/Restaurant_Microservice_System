@@ -6,6 +6,7 @@ const DELIVERY_BASE =
   import.meta.env.VITE_DELIVERY_API || `${API_BASE}/api/delivery`;
 const NOTIFICATION_BASE =
   import.meta.env.VITE_NOTIFICATION_API || `${API_BASE}/api/notification`;
+const AUTH_BASE = import.meta.env.VITE_AUTH_API || `${API_BASE}/api/auth`;
 
 const handle = async (url, options = {}) => {
   const res = await fetch(url, {
@@ -62,5 +63,23 @@ export const notificationApi = {
     handle(`${NOTIFICATION_BASE}/notifications/test`, {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+};
+
+export const authApi = {
+  register: (payload) =>
+    handle(`${AUTH_BASE}/auth/register`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  login: (payload) =>
+    handle(`${AUTH_BASE}/auth/login`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  me: (token) =>
+    handle(`${AUTH_BASE}/auth/me`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
     }),
 };

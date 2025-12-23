@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { deliveryApi, notificationApi, orderApi, restaurantApi } from "./api";
+import {
+  authApi,
+  deliveryApi,
+  notificationApi,
+  orderApi,
+  restaurantApi,
+} from "./api";
 
 const Card = ({ title, children, actions }) => (
   <div className="card">
@@ -25,6 +31,10 @@ export default function App() {
   const [deliveryStatus, setDeliveryStatus] = useState(null);
   const [notificationResult, setNotificationResult] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
+  const [authForm, setAuthForm] = useState({ email: "", password: "" });
+  const [authUser, setAuthUser] = useState(null);
+  const [authError, setAuthError] = useState("");
 
   const loadRestaurants = async () => {
     setLoadingRestaurants(true);
@@ -40,6 +50,15 @@ export default function App() {
 
   useEffect(() => {
     loadRestaurants();
+    const stored = localStorage.getItem("auth_token");
+    if (stored) {
+      authApi
+        .me(stored)
+        .then((res) => setAuthUser(res.user || res))
+        .catch(() => {
+          localStorage.removeItem("auth_token");
+        });
+    }
   }, []);
 
   const createRestaurant = async () => {
@@ -60,6 +79,25 @@ export default function App() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleAuthSubmit = async () => {
+    setAuthError("");
+    try {
+      const action = authMode === "login" ? authApi.login : authApi.register;
+      const res = await action(authForm);
+      const token = res.token;
+      if (token) localStorage.setItem("auth_token", token);
+      setAuthUser(res.user || null);
+      setAuthForm({ email: "", password: "" });
+    } catch (e) {
+      setAuthError(e.message || "Auth failed");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth_token");
+    setAuthUser(null);
   };
 
   const featured = useMemo(() => restaurants.slice(0, 3), [restaurants]);
@@ -137,6 +175,62 @@ export default function App() {
       </header>
 
       <section className="grid">
+        <Card
+          title="Authentication"
+          actions={
+            <div className="tags">
+              <button
+                className="ghost"
+                onClick={() =>
+                  setAuthMode(authMode === "login" ? "signup" : "login")
+                }
+              >
+                {authMode === "login" ? "Switch to Sign up" : "Switch to Login"}
+              </button>
+            </div>
+          }
+        >
+          {authUser ? (
+            <div className="panel">
+              <div className="row">
+                <span>User</span>
+                <strong>{authUser.email}</strong>
+              </div>
+              <div className="row">
+                <span>Role</span>
+                <Tag>{authUser.role || "user"}</Tag>
+              </div>
+              <button className="ghost" onClick={handleLogout}>
+                Log out
+              </button>
+            </div>
+          ) : (
+            <div className="panel">
+              <div className="form-inline">
+                <input
+                  placeholder="Email"
+                  value={authForm.email}
+                  onChange={(e) =>
+                    setAuthForm({ ...authForm, email: e.target.value })
+                  }
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={authForm.password}
+                  onChange={(e) =>
+                    setAuthForm({ ...authForm, password: e.target.value })
+                  }
+                />
+              </div>
+              {authError && <p className="muted">{authError}</p>}
+              <button className="primary" onClick={handleAuthSubmit}>
+                {authMode === "login" ? "Login" : "Sign up"}
+              </button>
+            </div>
+          )}
+        </Card>
+
         <Card
           title="Restaurants"
           actions={
