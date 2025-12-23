@@ -173,11 +173,10 @@ export default function App() {
       <header className="hero">
         <div>
           <p className="eyebrow">Modern food orchestration</p>
-          <h1>Restaurant platform HLD brought to life</h1>
+          <h1>Restaurant platform to life</h1>
           <p className="lede">
             Manage restaurants, menus, orders, delivery simulation, and
-            notifications through a lightweight Node.js backend and a polished
-            React UI.
+            notifications here...
           </p>
           <div className="actions">
             <button
@@ -197,8 +196,8 @@ export default function App() {
           </div>
         </div>
         <div className="pillars">
-          <div className="pillar">High availability</div>
-          <div className="pillar">Low-latency reads</div>
+          <div className="pillar">Micro service architecture</div>
+          <div className="pillar">Load Balanced</div>
           <div className="pillar">Event-driven</div>
         </div>
       </header>
