@@ -31,6 +31,8 @@ export default function App() {
   const [deliveryStatus, setDeliveryStatus] = useState(null);
   const [notificationResult, setNotificationResult] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [orderRunning, setOrderRunning] = useState(false);
+  const [notificationSending, setNotificationSending] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [authForm, setAuthForm] = useState({ email: "", password: "" });
   const [authUser, setAuthUser] = useState(null);
@@ -127,6 +129,7 @@ export default function App() {
 
   const createOrderFlow = async () => {
     if (!requireAuth()) return;
+    setOrderRunning(true);
     try {
       const targetRestaurant = restaurants[0];
       if (!targetRestaurant) {
@@ -151,11 +154,14 @@ export default function App() {
       setTimeout(unsubscribe, 15000);
     } catch (e) {
       alert(e.message);
+    } finally {
+      setOrderRunning(false);
     }
   };
 
   const sendTestNotification = async () => {
     if (!requireAuth()) return;
+    setNotificationSending(true);
     try {
       const note = await notificationApi.test({
         channel: "email",
@@ -165,6 +171,8 @@ export default function App() {
       setNotificationResult(note);
     } catch (e) {
       alert(e.message);
+    } finally {
+      setNotificationSending(false);
     }
   };
 
@@ -190,9 +198,10 @@ export default function App() {
               className="ghost"
               onClick={loadRestaurants}
               disabled={loadingRestaurants}
-            >
-              Refresh data
-            </button>
+              disabled={!authUser || orderRunning}
+              Refresh
+              data={orderRunning ? "Running..." : "Run simulation"}
+            ></button>
           </div>
         </div>
         <div className="pillars">
@@ -397,9 +406,9 @@ export default function App() {
               <button
                 className="primary"
                 onClick={sendTestNotification}
-                disabled={!authUser}
+                disabled={!authUser || notificationSending}
               >
-                Send test notification
+                {notificationSending ? "Sending..." : "Send test notification"}
               </button>
               {notificationResult && (
                 <div className="panel">
