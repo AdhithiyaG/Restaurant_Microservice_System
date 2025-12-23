@@ -35,6 +35,7 @@ export default function App() {
   const [authForm, setAuthForm] = useState({ email: "", password: "" });
   const [authUser, setAuthUser] = useState(null);
   const [authError, setAuthError] = useState("");
+  const [authToken, setAuthToken] = useState("");
 
   const requireAuth = () => {
     if (!authUser) {
@@ -57,17 +58,26 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadRestaurants();
     const stored = localStorage.getItem("auth_token");
     if (stored) {
+      setAuthToken(stored);
       authApi
         .me(stored)
         .then((res) => setAuthUser(res.user || res))
         .catch(() => {
           localStorage.removeItem("auth_token");
+          setAuthToken("");
         });
     }
   }, []);
+
+  useEffect(() => {
+    if (authUser) {
+      loadRestaurants();
+    } else {
+      setRestaurants([]);
+    }
+  }, [authUser]);
 
   const createRestaurant = async () => {
     if (!requireAuth()) return;
@@ -96,7 +106,10 @@ export default function App() {
       const action = authMode === "login" ? authApi.login : authApi.register;
       const res = await action(authForm);
       const token = res.token;
-      if (token) localStorage.setItem("auth_token", token);
+      if (token) {
+        localStorage.setItem("auth_token", token);
+        setAuthToken(token);
+      }
       setAuthUser(res.user || null);
       setAuthForm({ email: "", password: "" });
     } catch (e) {
@@ -107,6 +120,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     setAuthUser(null);
+    setAuthToken("");
   };
 
   const featured = useMemo(() => restaurants.slice(0, 3), [restaurants]);
@@ -246,176 +260,195 @@ export default function App() {
           )}
         </Card>
 
-        <Card
-          title="Restaurants"
-          actions={
-            <button
-              className="ghost"
-              onClick={loadRestaurants}
-              disabled={loadingRestaurants}
+        {!authUser && (
+          <p className="muted">
+            Log in to access restaurants, orders, delivery, and notifications.
+          </p>
+        )}
+
+        {authUser && (
+          <>
+            <Card
+              title="Restaurants"
+              actions={
+                <button
+                  className="ghost"
+                  onClick={loadRestaurants}
+                  disabled={loadingRestaurants}
+                >
+                  {loadingRestaurants ? "Loading" : "Reload"}
+                </button>
+              }
             >
-              {loadingRestaurants ? "Loading" : "Reload"}
-            </button>
-          }
-        >
-          {restaurants.length === 0 && (
-            <p className="muted">No restaurants yet. Add one below.</p>
-          )}
-          <div className="restaurant-list">
-            {restaurants.map((r) => (
-              <div key={r.id} className="restaurant">
+              {restaurants.length === 0 && (
+                <p className="muted">No restaurants yet. Add one below.</p>
+              )}
+              <div className="restaurant-list">
+                {restaurants.map((r) => (
+                  <div key={r.id} className="restaurant">
+                    <div>
+                      <h4>{r.name}</h4>
+                      <p className="muted">{r.address}</p>
+                      <div className="tags">
+                        {(r.tags || []).map((t) => (
+                          <Tag key={t}>{t}</Tag>
+                        ))}
+                      </div>
+                    </div>
+                    <span className={`status ${r.status?.toLowerCase()}`}>
+                      {r.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="form-inline">
+                <input
+                  placeholder="Name"
+                  value={newRestaurant.name}
+                  onChange={(e) =>
+                    setNewRestaurant({ ...newRestaurant, name: e.target.value })
+                  }
+                />
+                <input
+                  placeholder="Address"
+                  value={newRestaurant.address}
+                  onChange={(e) =>
+                    setNewRestaurant({
+                      ...newRestaurant,
+                      address: e.target.value,
+                    })
+                  }
+                />
+                <input
+                  placeholder="Tags (comma separated)"
+                  value={newRestaurant.tags}
+                  onChange={(e) =>
+                    setNewRestaurant({ ...newRestaurant, tags: e.target.value })
+                  }
+                />
+                <button
+                  className="primary"
+                  onClick={createRestaurant}
+                  disabled={creating || !authUser}
+                >
+                  {creating ? "Saving..." : "Add restaurant"}
+                </button>
+              </div>
+            </Card>
+
+            <Card
+              title="Order + Delivery simulation"
+              actions={orderResult && <Tag>{orderResult.state}</Tag>}
+            >
+              <p className="muted">
+                Creates an order, assigns a mock delivery partner, and streams
+                live status updates.
+              </p>
+              <button
+                className="primary"
+                onClick={createOrderFlow}
+                disabled={!authUser}
+              >
+                Run simulation
+              </button>
+              {orderResult && (
+                <div className="panel">
+                  <div className="row">
+                    <span>Order ID</span>
+                    <code>{orderResult.id}</code>
+                  </div>
+                  <div className="row">
+                    <span>Total</span>
+                    <strong>${orderResult.total?.toFixed(2)}</strong>
+                  </div>
+                  <div className="row">
+                    <span>State</span>
+                    <Tag>{orderResult.state}</Tag>
+                  </div>
+                </div>
+              )}
+              {deliveryStatus && (
+                <div className="panel">
+                  <div className="row">
+                    <span>Delivery ID</span>
+                    <code>{deliveryStatus.id}</code>
+                  </div>
+                  <div className="row">
+                    <span>Status</span>
+                    <Tag>{deliveryStatus.status}</Tag>
+                  </div>
+                  <div className="row">
+                    <span>Partner</span>
+                    <span>{deliveryStatus.partnerId}</span>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            <Card
+              title="Notifications"
+              actions={
+                notificationResult && <Tag>{notificationResult.status}</Tag>
+              }
+            >
+              <p className="muted">
+                Trigger a mock notification send. The backend stores a simple
+                audit trail.
+              </p>
+              <button
+                className="primary"
+                onClick={sendTestNotification}
+                disabled={!authUser}
+              >
+                Send test notification
+              </button>
+              {notificationResult && (
+                <div className="panel">
+                  <div className="row">
+                    <span>Notification ID</span>
+                    <code>{notificationResult.id}</code>
+                  </div>
+                  <div className="row">
+                    <span>Channel</span>
+                    <Tag>{notificationResult.channel}</Tag>
+                  </div>
+                  <div className="row">
+                    <span>Recipient</span>
+                    <span>{notificationResult.to}</span>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </>
+        )}
+      </section>
+
+      {authUser && (
+        <section className="featured">
+          <h3>Featured picks</h3>
+          <div className="cards">
+            {featured.map((r) => (
+              <div key={r.id} className="spotlight">
                 <div>
-                  <h4>{r.name}</h4>
                   <p className="muted">{r.address}</p>
+                  <h4>{r.name}</h4>
                   <div className="tags">
                     {(r.tags || []).map((t) => (
                       <Tag key={t}>{t}</Tag>
                     ))}
                   </div>
                 </div>
-                <span className={`status ${r.status?.toLowerCase()}`}>
-                  {r.status}
-                </span>
+                <span className="rating">★ 4.5</span>
               </div>
             ))}
+            {featured.length === 0 && (
+              <p className="muted">
+                Add restaurants to see curated highlights.
+              </p>
+            )}
           </div>
-          <div className="form-inline">
-            <input
-              placeholder="Name"
-              value={newRestaurant.name}
-              onChange={(e) =>
-                setNewRestaurant({ ...newRestaurant, name: e.target.value })
-              }
-            />
-            <input
-              placeholder="Address"
-              value={newRestaurant.address}
-              onChange={(e) =>
-                setNewRestaurant({ ...newRestaurant, address: e.target.value })
-              }
-            />
-            <input
-              placeholder="Tags (comma separated)"
-              value={newRestaurant.tags}
-              onChange={(e) =>
-                setNewRestaurant({ ...newRestaurant, tags: e.target.value })
-              }
-            />
-            <button
-              className="primary"
-              onClick={createRestaurant}
-              disabled={creating || !authUser}
-            >
-              {creating ? "Saving..." : "Add restaurant"}
-            </button>
-          </div>
-        </Card>
-
-        <Card
-          title="Order + Delivery simulation"
-          actions={orderResult && <Tag>{orderResult.state}</Tag>}
-        >
-          <p className="muted">
-            Creates an order, assigns a mock delivery partner, and streams live
-            status updates.
-          </p>
-          <button
-            className="primary"
-            onClick={createOrderFlow}
-            disabled={!authUser}
-          >
-            Run simulation
-          </button>
-          {orderResult && (
-            <div className="panel">
-              <div className="row">
-                <span>Order ID</span>
-                <code>{orderResult.id}</code>
-              </div>
-              <div className="row">
-                <span>Total</span>
-                <strong>${orderResult.total?.toFixed(2)}</strong>
-              </div>
-              <div className="row">
-                <span>State</span>
-                <Tag>{orderResult.state}</Tag>
-              </div>
-            </div>
-          )}
-          {deliveryStatus && (
-            <div className="panel">
-              <div className="row">
-                <span>Delivery ID</span>
-                <code>{deliveryStatus.id}</code>
-              </div>
-              <div className="row">
-                <span>Status</span>
-                <Tag>{deliveryStatus.status}</Tag>
-              </div>
-              <div className="row">
-                <span>Partner</span>
-                <span>{deliveryStatus.partnerId}</span>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <Card
-          title="Notifications"
-          actions={notificationResult && <Tag>{notificationResult.status}</Tag>}
-        >
-          <p className="muted">
-            Trigger a mock notification send. The backend stores a simple audit
-            trail.
-          </p>
-          <button
-            className="primary"
-            onClick={sendTestNotification}
-            disabled={!authUser}
-          >
-            Send test notification
-          </button>
-          {notificationResult && (
-            <div className="panel">
-              <div className="row">
-                <span>Notification ID</span>
-                <code>{notificationResult.id}</code>
-              </div>
-              <div className="row">
-                <span>Channel</span>
-                <Tag>{notificationResult.channel}</Tag>
-              </div>
-              <div className="row">
-                <span>Recipient</span>
-                <span>{notificationResult.to}</span>
-              </div>
-            </div>
-          )}
-        </Card>
-      </section>
-
-      <section className="featured">
-        <h3>Featured picks</h3>
-        <div className="cards">
-          {featured.map((r) => (
-            <div key={r.id} className="spotlight">
-              <div>
-                <p className="muted">{r.address}</p>
-                <h4>{r.name}</h4>
-                <div className="tags">
-                  {(r.tags || []).map((t) => (
-                    <Tag key={t}>{t}</Tag>
-                  ))}
-                </div>
-              </div>
-              <span className="rating">★ 4.5</span>
-            </div>
-          ))}
-          {featured.length === 0 && (
-            <p className="muted">Add restaurants to see curated highlights.</p>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }
