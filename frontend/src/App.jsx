@@ -36,6 +36,14 @@ export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [authError, setAuthError] = useState("");
 
+  const requireAuth = () => {
+    if (!authUser) {
+      alert("Please log in first.");
+      return null;
+    }
+    return localStorage.getItem("auth_token") || "";
+  };
+
   const loadRestaurants = async () => {
     setLoadingRestaurants(true);
     try {
@@ -62,6 +70,7 @@ export default function App() {
   }, []);
 
   const createRestaurant = async () => {
+    if (!requireAuth()) return;
     setCreating(true);
     try {
       await restaurantApi.create({
@@ -103,6 +112,7 @@ export default function App() {
   const featured = useMemo(() => restaurants.slice(0, 3), [restaurants]);
 
   const createOrderFlow = async () => {
+    if (!requireAuth()) return;
     try {
       const targetRestaurant = restaurants[0];
       if (!targetRestaurant) {
@@ -131,6 +141,7 @@ export default function App() {
   };
 
   const sendTestNotification = async () => {
+    if (!requireAuth()) return;
     try {
       const note = await notificationApi.test({
         channel: "email",
@@ -155,7 +166,11 @@ export default function App() {
             React UI.
           </p>
           <div className="actions">
-            <button className="primary" onClick={createOrderFlow}>
+            <button
+              className="primary"
+              onClick={createOrderFlow}
+              disabled={!authUser}
+            >
               Try a full order run
             </button>
             <button
@@ -289,7 +304,7 @@ export default function App() {
             <button
               className="primary"
               onClick={createRestaurant}
-              disabled={creating}
+              disabled={creating || !authUser}
             >
               {creating ? "Saving..." : "Add restaurant"}
             </button>
@@ -304,7 +319,11 @@ export default function App() {
             Creates an order, assigns a mock delivery partner, and streams live
             status updates.
           </p>
-          <button className="primary" onClick={createOrderFlow}>
+          <button
+            className="primary"
+            onClick={createOrderFlow}
+            disabled={!authUser}
+          >
             Run simulation
           </button>
           {orderResult && (
@@ -349,7 +368,11 @@ export default function App() {
             Trigger a mock notification send. The backend stores a simple audit
             trail.
           </p>
-          <button className="primary" onClick={sendTestNotification}>
+          <button
+            className="primary"
+            onClick={sendTestNotification}
+            disabled={!authUser}
+          >
             Send test notification
           </button>
           {notificationResult && (
