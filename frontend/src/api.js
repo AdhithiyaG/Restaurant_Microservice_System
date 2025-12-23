@@ -1,7 +1,14 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "";
+const RESTAURANT_BASE =
+  import.meta.env.VITE_RESTAURANT_API || `${API_BASE}/api/restaurant`;
+const ORDER_BASE = import.meta.env.VITE_ORDER_API || `${API_BASE}/api/order`;
+const DELIVERY_BASE =
+  import.meta.env.VITE_DELIVERY_API || `${API_BASE}/api/delivery`;
+const NOTIFICATION_BASE =
+  import.meta.env.VITE_NOTIFICATION_API || `${API_BASE}/api/notification`;
 
-const handle = async (path, options = {}) => {
-  const res = await fetch(`${API_BASE}${path}`, {
+const handle = async (url, options = {}) => {
+  const res = await fetch(url, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
     ...options,
   });
@@ -14,9 +21,9 @@ const handle = async (path, options = {}) => {
 };
 
 export const restaurantApi = {
-  list: () => handle("/api/restaurant/restaurants"),
+  list: () => handle(`${RESTAURANT_BASE}/restaurants`),
   create: (payload) =>
-    handle("/api/restaurant/restaurants", {
+    handle(`${RESTAURANT_BASE}/restaurants`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -24,21 +31,21 @@ export const restaurantApi = {
 
 export const orderApi = {
   create: (payload) =>
-    handle("/api/order/orders", {
+    handle(`${ORDER_BASE}/orders`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  get: (id) => handle(`/api/order/orders/${id}`),
+  get: (id) => handle(`${ORDER_BASE}/orders/${id}`),
 };
 
 export const deliveryApi = {
   assign: (payload) =>
-    handle("/api/delivery/deliveries/assign", {
+    handle(`${DELIVERY_BASE}/deliveries/assign`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
   stream: (id, onMessage) => {
-    const source = new EventSource(`/api/delivery/deliveries/${id}/stream`);
+    const source = new EventSource(`${DELIVERY_BASE}/deliveries/${id}/stream`);
     source.onmessage = (event) => {
       try {
         onMessage(JSON.parse(event.data));
@@ -52,7 +59,7 @@ export const deliveryApi = {
 
 export const notificationApi = {
   test: (payload) =>
-    handle("/api/notification/notifications/test", {
+    handle(`${NOTIFICATION_BASE}/notifications/test`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
