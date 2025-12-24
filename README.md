@@ -5,7 +5,7 @@ This repository contains a high-level design (HLD) for a restaurant ordering pla
 ## Quick Overview
 
 - **Services**: Restaurant Service, Order Service, Delivery Service (mocked simulation allowed), Notification Service.
-- **Infra**: API Gateway (Nginx), message bus (Kafka/NATS), cache (Redis), primary datastore (PostgreSQL), object storage (for assets), metrics/logging/trace stack.
+- **Infra**: API Gateway (Nginx)
 - **Qualities**: High availability, read-heavy performance for restaurant listing (cache + read replicas), eventual consistency for cross-service updates, horizontal scalability per service.
 
 ## Files
