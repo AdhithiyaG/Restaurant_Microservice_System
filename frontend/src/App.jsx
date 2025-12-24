@@ -190,18 +190,17 @@ export default function App() {
             <button
               className="primary"
               onClick={createOrderFlow}
-              disabled={!authUser}
+              disabled={!authUser || orderRunning}
             >
-              Try a full order run
+              {orderRunning ? "Running..." : "Try a full order run"}
             </button>
             <button
               className="ghost"
               onClick={loadRestaurants}
-              disabled={loadingRestaurants}
-              disabled={!authUser || orderRunning}
-              Refresh
-              data={orderRunning ? "Running..." : "Run simulation"}
-            ></button>
+              disabled={!authUser || loadingRestaurants}
+            >
+              {loadingRestaurants ? "Loading" : "Refresh data"}
+            </button>
           </div>
         </div>
         <div className="pillars">
@@ -355,9 +354,9 @@ export default function App() {
               <button
                 className="primary"
                 onClick={createOrderFlow}
-                disabled={!authUser}
+                disabled={!authUser || orderRunning}
               >
-                Run simulation
+                {orderRunning ? "Running..." : "Run simulation"}
               </button>
               {orderResult && (
                 <div className="panel">
